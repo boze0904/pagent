@@ -1,0 +1,83 @@
+/************************************************************/
+/*  ファイル名 :                proc_import_dar_delete.pc	*/
+/*	概要		:	無し									*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "output_log.h"
+EXEC SQL INCLUDE SQLCA;
+
+int proc_import_dar_delete(char *dar_no) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR sql_buff[1024];
+		char proc_dar_no[11];
+		int		num=0;
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset((char*)sql_buff.arr, 0, 1024);
+	memset(proc_dar_no, 0, 11);
+
+	/* SQL作成 */
+	sprintf((char*)sql_buff.arr, "select count(*) from isdn_tbl_das where dar_no='%s' and (das_status='3' or das_status='4')", dar_no);
+	sql_buff.len = strlen((char*)sql_buff.arr);
+	
+	printLog(DEBUGING, "%s : %d %s", __FILE__, __LINE__, (char*)sql_buff.arr);
+
+	/* exec sql */
+	EXEC SQL PREPARE SB FROM :sql_buff;
+	EXEC SQL DECLARE CUR CURSOR FOR SB;
+	EXEC SQL OPEN CUR;
+	EXEC SQL FETCH CUR INTO :num;
+	EXEC SQL CLOSE CUR;
+	EXEC SQL COMMIT WORK;
+
+	printLog(DEBUGING, "%s : %d 該当ユーザ数 %d", __FILE__, __LINE__, num);
+	if( num > 0 ){
+		return -1;
+	}
+
+	strcpy(proc_dar_no, dar_no);
+	/* DAR消します */
+	EXEC SQL DELETE FROM ISDN_TBL_DAR WHERE dar_no = :proc_dar_no;
+	/* チェック */
+	rtn = sqlca.sqlcode;
+	if(rtn != 0){
+		printLog( DEBUGING, "%s : %d DELETE FROM ISDN_TBL_DAR...ORA %d", __FILE__, __LINE__, rtn);
+		EXEC SQL ROLLBACK WORK;
+		return rtn;
+	}
+	printLog(DEBUGING, "%s : %d ISDN_TBL_DAR 削除完了", __FILE__, __LINE__);
+
+	/* DAS消します */
+	EXEC SQL DELETE FROM ISDN_TBL_DAS WHERE dar_no = :proc_dar_no;
+	/* チェック */
+	rtn = sqlca.sqlcode;
+	if(rtn == 1403){
+		/* DARにはレコードがあるけど、DASにテーブルがない状態の場合、*/
+		/* 何もせずにCOMMITしてぬける */
+		printLog(DEBUGING, "%s : %d ISDN_TBL_DASにはレコードが存在しないが正常", __FILE__, __LINE__);
+		EXEC SQL COMMIT WORK;
+		return 0;
+	} else if(rtn != 0){
+		printLog( DEBUGING, "%s : %d DELETE FROM ISDN_TBL_DAS...ORA %d", __FILE__, __LINE__, rtn);
+		EXEC SQL ROLLBACK WORK;
+		return rtn;
+	}
+
+	printLog(DEBUGING, "%s : %d ISDN_TBL_DAS 削除完了", __FILE__, __LINE__);
+
+	/* commit */
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+/*	END OF FILE	*/
+

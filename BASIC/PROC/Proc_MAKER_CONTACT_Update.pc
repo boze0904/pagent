@@ -1,0 +1,107 @@
+/****************************************************************/
+/*  ファイル名 :                Proc_MAKER_CONTACT_Update.pc	*/
+/*  実行アプリケーション名 :    MAKER_CONTACT_Update			*/
+/*																*/
+/*  作成日 :                    2001/1/16						*/
+/*	更新日 :					2001/2/2						*/
+/*  作成者 :                    長島							*/
+/*																*/
+/****************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_MAKER_CONTACT_Update(MAKER_CONTACT *maker_contact) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_MAKER_CONTACT proc_maker_contact;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_maker_contact, '\0', sizeof(proc_maker_contact));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_maker_contact.MakerContactid, maker_contact->MakerContactid);
+	strcpy(proc_maker_contact.MakerName, maker_contact->MakerName);
+	strcpy(proc_maker_contact.MakerArrange, maker_contact->MakerArrange);
+	strcpy(proc_maker_contact.MakerContactDay, maker_contact->MakerContactDay);
+	strcpy(proc_maker_contact.MakerPersonDay, maker_contact->MakerPersonDay);
+	strcpy(proc_maker_contact.FaxNumberDay, maker_contact->FaxNumberDay);
+	strcpy(proc_maker_contact.MakerContactNight, maker_contact->MakerContactNight);
+	strcpy(proc_maker_contact.MakerPersonNight, maker_contact->MakerPersonNight);
+	strcpy(proc_maker_contact.FaxNumberNight, maker_contact->FaxNumberNight);
+#if(0)  /*  前ばーじょん名残り 今は使わない */
+#endif
+
+#ifdef DEBUG
+printf("proc_maker_contact.MakerContactid=%s\n",proc_maker_contact.MakerContactid);
+printf("proc_maker_contact.MakerName=%s\n",proc_maker_contact.MakerName);
+printf("proc_maker_contact.MakerArrange=%s\n",proc_maker_contact.MakerArrange);
+printf("proc_maker_contact.MakerContactDay=%s\n",proc_maker_contact.MakerContactDay);
+printf("proc_maker_contact.MakerPersonDay=%s\n",proc_maker_contact.MakerPersonDay);
+printf("proc_maker_contact.FaxNumberDay=%s\n",proc_maker_contact.FaxNumberDay);
+printf("proc_maker_contact.MakerContactNight=%s\n",proc_maker_contact.MakerContactNight);
+printf("proc_maker_contact.MakerPersonNight=%s\n",proc_maker_contact.MakerPersonNight);
+printf("proc_maker_contact.FaxNumberNight=%s\n",proc_maker_contact.FaxNumberNight);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	Makeridだけ自動に（？）生成されるので			*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE t_MAKER_CONTACT SET 
+					MakerName = :proc_maker_contact.MakerName,
+					MakerArrange = :proc_maker_contact.MakerArrange,
+					MakerContactDay = :proc_maker_contact.MakerContactDay,
+					MakerPersonDay = :proc_maker_contact.MakerPersonDay,
+					FaxNumberDay = :proc_maker_contact.FaxNumberDay,
+					MakerContactNight = :proc_maker_contact.MakerContactNight,
+					MakerPersonNight = :proc_maker_contact.MakerPersonNight,
+					FaxNumberNight = :proc_maker_contact.FaxNumberNight,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE MakerContactid = :proc_maker_contact.MakerContactid;
+#if(0)  /*  前ばーじょん名残り 今は使わない */
+#endif
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# MAKER_CONTACT_Update 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

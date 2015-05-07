@@ -1,0 +1,124 @@
+/****************************************************************************/
+/* file nanme  dbfunc.pc                                                    */
+/*                                                                          */
+/* DB 操作用関数郡                                                          */
+/*                                                                          */
+/* Function:                                                                */
+/*   DbConnect                                                              */
+/*   DbDisconnect                                                           */
+/*                                                                          */
+/* Create : 2000.12.15                                                      */
+/* Modify : 2000.12.21	上のfile name が間違っていたので修正                */
+/****************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+
+
+/****************************************************************************/
+/* Name:                                                                    */
+/*   DbConnect                                                              */
+/*                                                                          */
+/* Parameters:                                                              */
+/*   char	*user  : IN: user name                                          */
+/*   char	*passwd: IN: pass word                                          */
+/*                                                                          */
+/* Return:                                                                  */
+/*   int: SQL文実行の戻り値                                                 */
+/*                                                                          */
+/* Description:                                                             */
+/*   引数で渡されたユーザ名とパスワードを使用して、                         */
+/*   データベースに接続する                                                 */
+/*                                                                          */
+/* Create : 2000.12.15                                                      */
+/* Modify :                                                                 */
+/****************************************************************************/
+int DbConnect( char *user, char *passwd, char *sid )
+{
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		username[20];
+		VARCHAR		password[20];
+		VARCHAR		db_string[10];
+	EXEC SQL END   DECLARE SECTION;
+
+	int rtn = 0;
+	char *ora_sid;
+
+	if( strlen(user) > 20 || strlen(passwd) > 20 )
+	{
+		return -1;
+	}
+
+	if(strlen(sid) == 0){
+		if((ora_sid = getenv("ORACLE_SID")) == NULL){
+			printf("システムエラー\n");
+			fflush( stdout );
+			exit(-1);
+		}
+		strcpy( (char *)db_string.arr, ora_sid );
+		db_string.len = (short)strlen( (char *)db_string.arr );
+	} else {
+		strcpy( (char *)db_string.arr, sid );
+		db_string.len = (short)strlen( (char *)db_string.arr );
+	}
+
+#ifdef DEBUG
+	printf("############### ORACLE_SID : %s ########################\n",sid);	
+	fflush( stdout );
+#endif
+
+	strcpy( (char *)username.arr, user );
+	username.len = (short)strlen( (char *)username.arr );
+	strcpy( (char *)password.arr, passwd );
+	password.len = (short)strlen( (char *)password.arr );
+
+
+/************	DB接続	**************/
+	EXEC SQL CONNECT :username IDENTIFIED BY :password USING :db_string;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("ユーザ名:%s\n",username.arr);
+printf("パスワード:%s\n",password.arr);
+printf("SID:%s\n",db_string.arr);
+printf("############# データベース接続：%d ###################\n",rtn);
+fflush(stdout);
+#endif
+
+	return(rtn);
+
+} /* DbConnect */
+
+
+
+/****************************************************************************/
+/* Name:                                                                    */
+/*   DbDisconnect                                                           */
+/*                                                                          */
+/* Parameters:                                                              */
+/*   NONE                                                                   */
+/*                                                                          */
+/* Return:                                                                  */
+/*   NONE                                                                   */
+/*                                                                          */
+/* Description:                                                             */
+/*   データベースからの切断                                                 */
+/*                                                                          */
+/* Create : 2000.12.15                                                      */
+/* Modify :                                                                 */
+/****************************************************************************/
+void DbDisconnect()
+{
+	EXEC SQL COMMIT WORK RELEASE;
+
+	return;
+
+} /* DbDisconnect */
+
+/* End of File */

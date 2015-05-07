@@ -1,0 +1,104 @@
+/********************************************************/
+/*  ファイル名 :                Proc_EQP_Insert.pc		*/
+/*  実行アプリケーション名 :    EQP_Insert				*/
+/*														*/
+/*  作成日 :                    2001/1/16				*/
+/*	更新日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_EQP_Insert(EQP *eqp) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_EQP proc_eqp;
+		char create_by[21];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_eqp, '\0', sizeof(proc_eqp));
+	memset(&create_by, '\0', sizeof(create_by));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_eqp.BranchCode, eqp->BranchCode);
+	strcpy(proc_eqp.HostName, eqp->HostName);
+	strcpy(proc_eqp.ProductName, eqp->ProductName);
+	strcpy(proc_eqp.MakerContactid, eqp->MakerContactid);
+	strcpy(proc_eqp.Componentid, eqp->Componentid);
+	strcpy(create_by, CREATE_BY);
+
+#ifdef DEBUG
+printf("proc_eqp.BranchCode=%s\n",proc_eqp.BranchCode);
+printf("proc_eqp.HostName=%s\n",proc_eqp.HostName);
+printf("proc_eqp.ProductName=%s\n",proc_eqp.ProductName);
+printf("proc_eqp.MakerContactid=%s\n",proc_eqp.MakerContactid);
+printf("proc_eqp.Componentid=%s\n",proc_eqp.Componentid);
+printf("create_by=%s\n",create_by);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	idだけ自動に（？）生成されるので				*/
+	/*	そのようにVALUESに「id_Seq.NEXTVAL」			*/
+	/*	をセットする									*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL INSERT INTO t_EQP (
+					id,
+					BranchCode,
+					HostName,
+					ProductName,
+					MakerContactid,
+					Componentid,
+					swCreatedBy )
+				VALUES (
+					EQPid_Seq.NEXTVAL,
+					:proc_eqp.BranchCode,
+					:proc_eqp.HostName,
+					:proc_eqp.ProductName,
+					:proc_eqp.MakerContactid,
+					:proc_eqp.Componentid,
+					:create_by );
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# EQP_Insert 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

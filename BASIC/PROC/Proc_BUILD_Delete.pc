@@ -1,0 +1,74 @@
+/********************************************************/
+/*  ファイル名 :                Proc_BUILD_Delete.pc	*/
+/*  実行アプリケーション名 :    BUILD_Delete			*/
+/*														*/
+/*  作成日 :                    2001/1/11				*/
+/*	変更日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+
+int Proc_BUILD_Delete(char *BuildCode) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_BuildCode[11];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_BuildCode, '\0', sizeof(proc_BuildCode));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_BuildCode, BuildCode);
+
+#ifdef DEBUG
+printf("proc_BuildCode=%s\n",proc_BuildCode);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	BuildCodeのみが渡されてくるので					*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM m_BUILD WHERE BuildCode = :proc_BuildCode;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# BUILD_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

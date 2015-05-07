@@ -1,0 +1,141 @@
+/************************************************************/
+/*  ファイル名 :                Proc_ISP_CONTACT_Insert.pc	*/
+/*  実行アプリケーション名 :    ISP_CONTACT_Insert			*/
+/*															*/
+/*  作成日 :                    2001/1/16					*/
+/*	変更日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_ISP_CONTACT_Insert(ISP_CONTACT *isp_contact) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_ISP_CONTACT proc_isp_contact;
+		char create_by[21];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_isp_contact, '\0', sizeof(proc_isp_contact));
+	memset(&create_by, '\0', sizeof(create_by));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_isp_contact.ISPCode, isp_contact->ISPCode);
+	strcpy(proc_isp_contact.ISPCorpName, isp_contact->ISPCorpName);
+	strcpy(proc_isp_contact.ISPServiceName, isp_contact->ISPServiceName);
+	strcpy(proc_isp_contact.MainteName, isp_contact->MainteName);
+	strcpy(proc_isp_contact.MainteNumber, isp_contact->MainteNumber);
+	strcpy(proc_isp_contact.MainteReason, isp_contact->MainteReason);
+	strcpy(proc_isp_contact.MainteMailTo, isp_contact->MainteMailTo);
+	strcpy(proc_isp_contact.MainteTime, isp_contact->MainteTime);
+	strcpy(proc_isp_contact.ConstName, isp_contact->ConstName);
+	strcpy(proc_isp_contact.ConstNumber, isp_contact->ConstNumber);
+	strcpy(proc_isp_contact.ConstReason, isp_contact->ConstReason);
+	strcpy(proc_isp_contact.ConstMailTo, isp_contact->ConstMailTo);
+	strcpy(proc_isp_contact.ConstTime, isp_contact->ConstTime);
+	strcpy(proc_isp_contact.IspMemo, isp_contact->IspMemo);
+	strcpy(create_by, CREATE_BY);
+
+#ifdef DEBUG
+printf("proc_isp_contact.ISPCode=%s\n",proc_isp_contact.ISPCode);
+printf("proc_isp_contact.ISPCorpName=%s\n",proc_isp_contact.ISPCorpName);
+printf("proc_isp_contact.ISPServiceName=%s\n",proc_isp_contact.ISPServiceName);
+printf("proc_isp_contact.MainteName=%s\n",proc_isp_contact.MainteName);
+printf("proc_isp_contact.MainteNumber=%s\n",proc_isp_contact.MainteNumber);
+printf("proc_isp_contact.MainteReason=%s\n",proc_isp_contact.MainteReason);
+printf("proc_isp_contact.MainteMailTo=%s\n",proc_isp_contact.MainteMailTo);
+printf("proc_isp_contact.MainteTime=%s\n",proc_isp_contact.MainteTime);
+printf("proc_isp_contact.ConstName=%s\n",proc_isp_contact.ConstName);
+printf("proc_isp_contact.ConstNumber=%s\n",proc_isp_contact.ConstNumber);
+printf("proc_isp_contact.ConstReason=%s\n",proc_isp_contact.ConstReason);
+printf("proc_isp_contact.ConstMailTo=%s\n",proc_isp_contact.ConstMailTo);
+printf("proc_isp_contact.ConstTime=%s\n",proc_isp_contact.ConstTime);
+printf("proc_isp_contact.IspMemo=%s\n",proc_isp_contact.IspMemo);
+printf("create_by=%s\n",create_by);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	ISPContactidだけ自動に（？）生成されるので		*/
+	/*	そのようにVALUESに「ISPContactid_Seq.NEXTVAL」	*/
+	/*	をセットする									*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL INSERT INTO m_ISP_CONTACT (
+					ISPContactid,
+					ISPCode,
+					ISPCorpName,
+					ISPServiceName,
+					MainteName,
+					MainteNumber,
+					MainteReason,
+					MainteMailTo,
+					MainteTime,
+					ConstName,
+					ConstNumber,
+					ConstReason,
+					ConstMailTo,
+					ConstTime,
+					IspMemo,
+					swCreatedBy )
+				VALUES (
+					ISPContactid_Seq.NEXTVAL,
+					:proc_isp_contact.ISPCode,
+					:proc_isp_contact.ISPCorpName,
+					:proc_isp_contact.ISPServiceName,
+					:proc_isp_contact.MainteName,
+					:proc_isp_contact.MainteNumber,
+					:proc_isp_contact.MainteReason,
+					:proc_isp_contact.MainteMailTo,
+					:proc_isp_contact.MainteTime,
+					:proc_isp_contact.ConstName,
+					:proc_isp_contact.ConstNumber,
+					:proc_isp_contact.ConstReason,
+					:proc_isp_contact.ConstMailTo,
+					:proc_isp_contact.ConstTime,
+					:proc_isp_contact.IspMemo,
+					:create_by );
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# ISP_CONTACT_Insert 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

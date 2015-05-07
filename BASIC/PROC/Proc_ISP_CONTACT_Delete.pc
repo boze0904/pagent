@@ -1,0 +1,74 @@
+/************************************************************/
+/*  ファイル名 :                Proc_ISP_CONTACT_Delete.pc	*/
+/*  実行アプリケーション名 :    ISP_CONTACT_Delete			*/
+/*															*/
+/*  作成日 :                    2001/1/16					*/
+/*	変更日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+
+int Proc_ISP_CONTACT_Delete(char *ISPCode) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_ISPCode[4];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_ISPCode, '\0', sizeof(proc_ISPCode));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_ISPCode, ISPCode);
+
+#ifdef DEBUG
+printf("proc_ISPCode=%s\n",proc_ISPCode);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	ISPCodeのみが渡されてくるので					*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM m_ISP_CONTACT WHERE ISPCode = :proc_ISPCode;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# ISP_CONTACT_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

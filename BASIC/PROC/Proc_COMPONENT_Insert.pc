@@ -1,0 +1,104 @@
+/************************************************************/
+/*  ファイル名 :                Proc_COMPONENT_Insert.pc	*/
+/*  実行アプリケーション名 :    COMPONENT_Insert			*/
+/*															*/
+/*  作成日 :                    2001/1/17					*/
+/*	更新日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_COMPONENT_Insert(COMPONENT *component) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_COMPONENT proc_component;
+		char create_by[21];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_component, '\0', sizeof(proc_component));
+	memset(&create_by, '\0', sizeof(create_by));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_component.Componentid, component->Componentid);
+	strcpy(proc_component.ComponentNo, component->ComponentNo);
+	strcpy(proc_component.ComponentKataNo, component->ComponentKataNo);
+	strcpy(proc_component.ComponentName, component->ComponentName);
+	strcpy(proc_component.ComponentNum, component->ComponentNum);
+	strcpy(create_by, CREATE_BY);
+
+#ifdef DEBUG
+printf("proc_component.Componentid=%s\n",proc_component.Componentid);
+printf("proc_component.ComponentNo=%s\n",proc_component.ComponentNo);
+printf("proc_component.ComponentKataNo=%s\n",proc_component.ComponentKataNo);
+printf("proc_component.ComponentName=%s\n",proc_component.ComponentName);
+printf("proc_component.ComponentNum=%s\n",proc_component.ComponentNum);
+printf("create_by=%s\n",create_by);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	idだけ自動に（？）生成されるので				*/
+	/*	そのようにVALUESに「id_Seq.NEXTVAL」			*/
+	/*	をセットする									*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL INSERT INTO t_COMPONENT (
+					id,
+					Componentid,
+					ComponentNo,
+					ComponentKataNo,
+					ComponentKanaName,
+					ComponentNum,
+					swCreatedBy )
+				VALUES (
+					Componentid_Seq.NEXTVAL,
+					:proc_component.Componentid,
+					:proc_component.ComponentNo,
+					:proc_component.ComponentKataNo,
+					:proc_component.ComponentName,
+					:proc_component.ComponentNum,
+					:create_by );
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# COMPONENT_Insert 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

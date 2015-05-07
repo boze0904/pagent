@@ -1,0 +1,179 @@
+/************************************************************/
+/*  ファイル名 :                Proc_ISP_NTE_Update.pc		*/
+/*  実行アプリケーション名 :    ISP_NTE_Update				*/
+/*															*/
+/*  作成日 :                    2001/1/30					*/
+/*	変更日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_ISP_NTE_Update(ISP_NTE *isp_nte) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_ISP_NTE proc_isp_nte;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_isp_nte, '\0', sizeof(proc_isp_nte));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_isp_nte.BranchCode, isp_nte->BranchCode);
+    strcpy(proc_isp_nte.ISPCode, isp_nte->ISPCode);
+    strcpy(proc_isp_nte.NTENumber, isp_nte->NTENumber);
+    strcpy(proc_isp_nte.ISPName, isp_nte->ISPName);
+    strcpy(proc_isp_nte.ISPServiceName, isp_nte->ISPServiceName);
+    strcpy(proc_isp_nte.CircuitType, isp_nte->CircuitType);
+    strcpy(proc_isp_nte.CircuitSpeed, isp_nte->CircuitSpeed);
+    strcpy(proc_isp_nte.UserNameType, isp_nte->UserNameType);
+    strcpy(proc_isp_nte.SendUserIDType, isp_nte->SendUserIDType);
+    strcpy(proc_isp_nte.ISPDesc1, isp_nte->ISPDesc1);
+    strcpy(proc_isp_nte.ISPDesc2, isp_nte->ISPDesc2);
+    strcpy(proc_isp_nte.ProtcolPortNo1, isp_nte->ProtcolPortNo1);
+    strcpy(proc_isp_nte.ProtcolPortNo2, isp_nte->ProtcolPortNo2);
+    strcpy(proc_isp_nte.CertifyType, isp_nte->CertifyType);
+    strcpy(proc_isp_nte.IPAddrType, isp_nte->IPAddrType);
+    strcpy(proc_isp_nte.ISPIFAddr, isp_nte->ISPIFAddr);
+    strcpy(proc_isp_nte.ISPRouterIP, isp_nte->ISPRouterIP);
+    strcpy(proc_isp_nte.NetworkAddr1, isp_nte->NetworkAddr1);
+    strcpy(proc_isp_nte.Subnetmask1, isp_nte->Subnetmask1);
+    strcpy(proc_isp_nte.ISPServerAddr1, isp_nte->ISPServerAddr1);
+    strcpy(proc_isp_nte.ISPServerAddr2, isp_nte->ISPServerAddr2);
+    strcpy(proc_isp_nte.Timeout, isp_nte->Timeout);
+    strcpy(proc_isp_nte.RetryCnt, isp_nte->RetryCnt);
+    strcpy(proc_isp_nte.PassageTime, isp_nte->PassageTime);
+    strcpy(proc_isp_nte.PoolAddr1, isp_nte->PoolAddr1);
+    strcpy(proc_isp_nte.PoolAddr2, isp_nte->PoolAddr2);
+    strcpy(proc_isp_nte.PoolAddr3, isp_nte->PoolAddr3);
+    strcpy(proc_isp_nte.MaxSession, isp_nte->MaxSession);
+    strcpy(proc_isp_nte.DNSInfo, isp_nte->DNSInfo);
+    strcpy(proc_isp_nte.RediusKeys, isp_nte->RediusKeys);
+    strcpy(proc_isp_nte.VPI_VCI, isp_nte->VPI_VCI);
+    strcpy(proc_isp_nte.OamPVC, isp_nte->OamPVC);
+    strcpy(proc_isp_nte.AddAttribute, isp_nte->AddAttribute);
+    strcpy(proc_isp_nte.ConstDate, isp_nte->ConstDate);
+    strcpy(proc_isp_nte.ServiceStartDate, isp_nte->ServiceStartDate);
+
+#ifdef DEBUG
+printf("proc_isp_nte.BranchCode=%s\n",proc_isp_nte.BranchCode);
+printf("proc_isp_nte.ISPCode=%s\n",proc_isp_nte.ISPCode);
+printf("proc_isp_nte.NTENumber=%s\n",proc_isp_nte.NTENumber);
+printf("proc_isp_nte.ISPName=%s\n",proc_isp_nte.ISPName);
+printf("proc_isp_nte.ISPServiceName=%s\n",proc_isp_nte.ISPServiceName);
+printf("proc_isp_nte.CircuitType=%s\n",proc_isp_nte.CircuitType);
+printf("proc_isp_nte.CircuitSpeed=%s\n",proc_isp_nte.CircuitSpeed);
+printf("proc_isp_nte.UserNameType=%s\n",proc_isp_nte.UserNameType);
+printf("proc_isp_nte.SendUserIDType=%s\n",proc_isp_nte.SendUserIDType);
+printf("proc_isp_nte.ISPDesc1=%s\n",proc_isp_nte.ISPDesc1);
+printf("proc_isp_nte.ISPDesc2=%s\n",proc_isp_nte.ISPDesc2);
+printf("proc_isp_nte.ProtcolPortNo1=%s\n",proc_isp_nte.ProtcolPortNo1);
+printf("proc_isp_nte.ProtcolPortNo2=%s\n",proc_isp_nte.ProtcolPortNo2);
+printf("proc_isp_nte.CertifyType=%s\n",proc_isp_nte.CertifyType);
+printf("proc_isp_nte.IPAddrType=%s\n",proc_isp_nte.IPAddrType);
+printf("proc_isp_nte.ISPIFAddr=%s\n",proc_isp_nte.ISPIFAddr);
+printf("proc_isp_nte.ISPRouterIP=%s\n",proc_isp_nte.ISPRouterIP);
+printf("proc_isp_nte.NetworkAddr1=%s\n",proc_isp_nte.NetworkAddr1);
+printf("proc_isp_nte.Subnetmask1=%s\n",proc_isp_nte.Subnetmask1);
+printf("proc_isp_nte.ISPServerAddr1=%s\n",proc_isp_nte.ISPServerAddr1);
+printf("proc_isp_nte.ISPServerAddr2=%s\n",proc_isp_nte.ISPServerAddr2);
+printf("proc_isp_nte.Timeout=%s\n",proc_isp_nte.Timeout);
+printf("proc_isp_nte.RetryCnt=%s\n",proc_isp_nte.RetryCnt);
+printf("proc_isp_nte.PassageTime=%s\n",proc_isp_nte.PassageTime);
+printf("proc_isp_nte.PoolAddr1=%s\n",proc_isp_nte.PoolAddr1);
+printf("proc_isp_nte.PoolAddr2=%s\n",proc_isp_nte.PoolAddr2);
+printf("proc_isp_nte.PoolAddr3=%s\n",proc_isp_nte.PoolAddr3);
+printf("proc_isp_nte.MaxSession=%s\n",proc_isp_nte.MaxSession);
+printf("proc_isp_nte.DNSInfo=%s\n",proc_isp_nte.DNSInfo);
+printf("proc_isp_nte.RediusKeys=%s\n",proc_isp_nte.RediusKeys);
+printf("proc_isp_nte.VPI_VCI=%s\n",proc_isp_nte.VPI_VCI);
+printf("proc_isp_nte.OamPVC=%s\n",proc_isp_nte.OamPVC);
+printf("proc_isp_nte.AddAttribute=%s\n",proc_isp_nte.AddAttribute);
+printf("proc_isp_nte.ConstDate=%s\n",proc_isp_nte.ConstDate);
+printf("proc_isp_nte.ServiceStartDate=%s\n",proc_isp_nte.ServiceStartDate);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	ISPSettingidだけ自動に（？）生成されるので		*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE m_ISP_NTE SET 
+					ISPName = :proc_isp_nte.ISPName,
+					ISPServiceName = :proc_isp_nte.ISPServiceName,
+					CircuitType = :proc_isp_nte.CircuitType,
+					CircuitSpeed = :proc_isp_nte.CircuitSpeed,
+					UserNameType = :proc_isp_nte.UserNameType,
+					SendUserIDType = :proc_isp_nte.SendUserIDType,
+					ISPDesc1 = :proc_isp_nte.ISPDesc1,
+					ISPDesc2 = :proc_isp_nte.ISPDesc2,
+					ProtcolPortNo1 = :proc_isp_nte.ProtcolPortNo1,
+					ProtcolPortNo2 = :proc_isp_nte.ProtcolPortNo2,
+					CertifyType = :proc_isp_nte.CertifyType,
+					IPAddrType = :proc_isp_nte.IPAddrType,
+					ISPIFAddr = :proc_isp_nte.ISPIFAddr,
+					ISPRouterIP = :proc_isp_nte.ISPRouterIP,
+					NetworkAddr1 = :proc_isp_nte.NetworkAddr1,
+					Subnetmask1 = :proc_isp_nte.Subnetmask1,
+					ISPServerAddr1 = :proc_isp_nte.ISPServerAddr1,
+					ISPServerAddr2 = :proc_isp_nte.ISPServerAddr2,
+					Timeout = :proc_isp_nte.Timeout,
+					RetryCnt = :proc_isp_nte.RetryCnt,
+					PassageTime = :proc_isp_nte.PassageTime,
+					PoolAddr1 = :proc_isp_nte.PoolAddr1,
+					PoolAddr2 = :proc_isp_nte.PoolAddr2,
+					PoolAddr3 = :proc_isp_nte.PoolAddr3,
+					MaxSession = :proc_isp_nte.MaxSession,
+					DNSInfo = :proc_isp_nte.DNSInfo,
+					RediusKeys = :proc_isp_nte.RediusKeys,
+					VPI_VCI = :proc_isp_nte.VPI_VCI,
+					OamPVC = :proc_isp_nte.OamPVC,
+					AddAttribute = :proc_isp_nte.AddAttribute,
+					ConstDate = :proc_isp_nte.ConstDate,
+					ServiceStartDate = :proc_isp_nte.ServiceStartDate,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE BranchCode = :proc_isp_nte.BranchCode AND ISPCode = :proc_isp_nte.ISPCode AND NTENumber = :proc_isp_nte.NTENumber;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# ISP_NTE_Update 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return rtn;
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return rtn;
+
+}
+
+
+/*	END OF FILE	*/
+

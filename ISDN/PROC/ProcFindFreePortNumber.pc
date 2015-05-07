@@ -1,0 +1,522 @@
+/****************************************************************************/
+/* file nanme  ProcFindFreePortNumber.pc                                    */
+/*                                                                          */
+/*  プチDB連携                                                              */
+/*  DASチャネル空き情報検索 PRO*C処理                                       */
+/*                                                                          */
+/* Function:                                                                */
+/*   getUseablePort()                                                       */
+/*   getUnusedPort()                                                        */
+/*   getFreePort()                                                          */
+/*   getWorkingUseablePort()                                                */
+/*   getWorkingUnusedPort()                                                 */
+/*   getWorkPort()                                                          */
+/*   getWaitPort()                                                          */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "output_log.h"
+#include "ProcFindFreePortNumber.h"
+#include "OraErrCd.h"
+
+EXEC SQL INCLUDE SQLCA;
+
+
+/*** DAR 運用状態 ***/
+#define	DAR_WORK	"1"	/* 工事中 */
+#define	DAR_USEABLE	"2"	/* 運用中 */
+
+/*** DAS 運用状態 ***/
+#define	DAS_FREE	"1"	/* 空き     */
+#define	DAS_WAIT	"2"	/* 廃止済み */
+
+
+/*** カラムサイズ ***/
+#define	PORT_MAX	4
+
+/*** SQL文 バッファサイズ ***/
+#define	SQL_BUFF	2048 
+
+#define	USE_ABLE_UNIT	"select sum(to_number(PORT_MAX)) from ISDN_TBL_DAR where BRANCH_C = '%s' and BUILD_C = '%s' and UNIT_C = '%s' and DAR_STATUS = '%s'"
+
+#define	USE_ABLE_NOUNIT	"select sum(to_number(PORT_MAX)) from ISDN_TBL_DAR where BRANCH_C = '%s' and BUILD_C = '%s' and DAR_STATUS = '%s'"
+
+#define	UN_USED_UNIT	"select count(*) from ISDN_TBL_DAS das, ISDN_TBL_DAR dar where das.DAR_NO = dar.DAR_NO and dar.BRANCH_C = '%s' and dar.BUILD_C = '%s' and dar.UNIT_C = '%s' and dar.DAR_STATUS = '%s' and das.DAS_STATUS = '%s'"
+
+#define	UN_USED_NOUNIT	"select count(*) from ISDN_TBL_DAS das, ISDN_TBL_DAR dar where das.DAR_NO = dar.DAR_NO and dar.BRANCH_C = '%s' and dar.BUILD_C = '%s' and dar.DAR_STATUS = '%s' and das.DAS_STATUS = '%s'"
+
+
+/****************************************************************************/
+/* Name : getUseablePort                                                    */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:  0: 正常                                                */
+/*                  -1: 異常                                                */
+/*                                                                          */
+/* Description : 運用中実装数: DARが運用中の回線ポート数の合計を求める      */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getUseablePort( char* branch_cd, char* build_cd, char* unit_cd, 
+					struct PORT_INFO* port_info )
+{
+	/*** SQLで使う変数を宣言 ***/
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		sql_buff[SQL_BUFF];
+		long		mst=0;
+		short		ind;
+	EXEC SQL END DECLARE SECTION;
+
+
+	printLog( DEBUGING, "*** getUseablePort() ***" );
+
+	memset( sql_buff.arr, 0, sizeof(sql_buff.arr) );
+
+	if( strlen(unit_cd) > 0 ){
+		/* ユニットコードがある時 */
+		sprintf( (char*)sql_buff.arr, USE_ABLE_UNIT, branch_cd, build_cd, unit_cd, DAR_USEABLE );
+	}
+	else{
+		/* ユニットコードがない時 */
+		sprintf( (char*)sql_buff.arr, USE_ABLE_NOUNIT, branch_cd, build_cd, DAR_USEABLE );
+	}
+	
+	sql_buff.len = strlen( (char*)sql_buff.arr );
+
+	printLog( DEBUGING, "%s", sql_buff.arr );
+
+	EXEC SQL PREPARE SB FROM :sql_buff;
+
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+    EXEC SQL DECLARE CUR1 CURSOR FOR SB;
+
+    EXEC SQL OPEN CUR1;
+
+    EXEC SQL FETCH CUR1 INTO :mst indicator :ind;
+
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL CLOSE CUR1;
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+	/*** 運用中実装数の設定 ***/
+	port_info->all_free_port = mst;	
+	printLog( DEBUGING, "運用中実装数: %d", port_info->all_free_port );
+	
+	return 0;
+
+} /* getUseablePort() */
+
+
+/****************************************************************************/
+/* Name : getUnusedPort                                                     */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:  0: 正常                                                */
+/*                  -1: 異常                                                */
+/*                                                                          */
+/* Description : 未使用ポート数の取得                                       */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getUnusedPort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	/*** SQLで使う変数を宣言 ***/
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		sql_buff[SQL_BUFF];
+		int			mst=0;
+		short		ind;
+	EXEC SQL END DECLARE SECTION;
+
+
+	printLog( DEBUGING, "*** getUnusedPort() ***" );
+
+	memset( sql_buff.arr, 0, sizeof(sql_buff.arr) );
+
+	if( strlen(unit_cd) > 0 ){
+		sprintf( (char*)sql_buff.arr, UN_USED_UNIT, branch_cd, build_cd, unit_cd, DAR_USEABLE, DAS_FREE );
+	}
+	else{
+		sprintf( (char*)sql_buff.arr, UN_USED_NOUNIT, branch_cd, build_cd, DAR_USEABLE, DAS_FREE );
+	}
+	
+	sql_buff.len = strlen( (char*)sql_buff.arr );
+
+	printLog( DEBUGING, "%s", sql_buff.arr );
+
+	EXEC SQL PREPARE SB FROM :sql_buff;
+
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+    EXEC SQL DECLARE CUR2 CURSOR FOR SB;
+
+    EXEC SQL OPEN CUR2;
+
+    EXEC SQL FETCH CUR2 INTO :mst indicator :ind;
+
+	if( sqlca.sqlcode != 0 ){
+		/*  正常ではない場合	*/
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL CLOSE CUR2;
+		EXEC SQL COMMIT WORK;
+        return -1;
+    }
+
+	/* 空きポート数の設定 */
+	port_info->unused_port = mst;
+	printLog( DEBUGING, "空きポート数: %d", port_info->unused_port );
+
+	return 0;
+
+} /* getUnusedPort() */
+
+
+/****************************************************************************/
+/* Name : getFreePort                                                       */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:  0: 正常                                                */
+/*                  -1: 異常                                                */
+/*                                                                          */
+/* Description : 空きポート数と運用中実装数の検索を行う                     */
+/*               空きポート数: 未使用ポート数の合計                         */
+/*               未使用ポート: DARが運用中、DASが空きのもの                 */
+/*               運用中実装数: DARが運用中の回線ポート数の合計              */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getFreePort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	int		ret;
+
+
+	printLog( DEBUGING, "*** getFreePort() ***" );
+
+	/*** 運用中実装数を求める ***/
+	ret = getUseablePort( branch_cd, build_cd, unit_cd, port_info );
+	if( ret ){
+		return -1;
+	}
+
+	/*** 未使用ポート数を求める ***/
+	ret = getUnusedPort( branch_cd, build_cd, unit_cd, port_info );
+	if( ret ){
+		return -1;
+	}
+	
+	return 0;
+
+} /* getFreePort() */
+
+/****************************************************************************/
+/* Name : getWorkingUseablePort                                             */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:                    0: 正常                              */
+/*                  オラクルエラーコード: 異常                              */
+/*                                                                          */
+/* Description : 工事中実装数: DARが工事中の回線ポート数の合計を求める      */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getWorkingUseablePort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	/*** SQLで使う変数を宣言 ***/
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		sql_buff[SQL_BUFF];
+		long		mst=0;
+		short		ind;
+	EXEC SQL END DECLARE SECTION;
+
+
+	printLog( DEBUGING, "*** getWorkingUseablePort() ***" );
+
+	memset( sql_buff.arr, 0, sizeof(sql_buff.arr) );
+
+	if( strlen(unit_cd) > 0 ){
+		/* ユニットコードがある時 */
+		sprintf( (char*)sql_buff.arr, USE_ABLE_UNIT, branch_cd, build_cd, unit_cd, DAR_WORK );
+	}
+	else{
+		/* ユニットコードがない時 */
+		sprintf( (char*)sql_buff.arr, USE_ABLE_NOUNIT, branch_cd, build_cd, DAR_WORK );
+	}
+	
+	sql_buff.len = strlen( (char*)sql_buff.arr );
+
+	printLog( DEBUGING, "%s", sql_buff.arr );
+
+	EXEC SQL PREPARE SB FROM :sql_buff;
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+    EXEC SQL DECLARE CUR3 CURSOR FOR SB;
+
+    EXEC SQL OPEN CUR3;
+
+    EXEC SQL FETCH CUR3 INTO :mst indicator :ind;
+
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL CLOSE CUR3;
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+	/*** 工事中実装数の設定 ***/
+	port_info->all_work_port = mst;	
+	printLog( DEBUGING, "工事中実装数: %d", port_info->all_work_port );
+	
+	return 0;
+
+} /* getWorkingUseablePort() */
+
+
+/****************************************************************************/
+/* Name : getWorkingUnusedPort                                              */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:                    0: 正常                              */
+/*                  オラクルエラーコード: 異常                              */
+/*                                                                          */
+/* Description : 工事中ポート数の取得                                       */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getWorkingUnusedPort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	/*** SQLで使う変数を宣言 ***/
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		sql_buff[SQL_BUFF];
+		int			mst=0;
+		short		ind;
+	EXEC SQL END DECLARE SECTION;
+
+
+	printLog( DEBUGING, "*** getWorkingUnusedPort() ***" );
+
+	memset( sql_buff.arr, 0 ,sizeof(sql_buff.arr) );
+
+	if( strlen(unit_cd) > 0 ){
+		sprintf( (char*)sql_buff.arr, UN_USED_UNIT, branch_cd, build_cd, unit_cd, DAR_WORK, DAS_FREE );
+	}
+	else{
+		sprintf( (char*)sql_buff.arr, UN_USED_NOUNIT, branch_cd, build_cd, DAR_WORK, DAS_FREE );
+	}
+	
+	sql_buff.len = strlen( (char*)sql_buff.arr );
+
+	printLog( DEBUGING, "%s", sql_buff.arr );
+
+	EXEC SQL PREPARE SB FROM :sql_buff;
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+    EXEC SQL DECLARE CUR4 CURSOR FOR SB;
+
+    EXEC SQL OPEN CUR4;
+
+    EXEC SQL FETCH CUR4 INTO :mst indicator :ind;
+
+	if( sqlca.sqlcode != 0 ){
+		/*  正常ではない場合	*/
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL CLOSE CUR4;
+		EXEC SQL COMMIT WORK;
+        return -1;
+    }
+
+	/* 空きポート数の設定 */
+	port_info->work_port = mst;
+	printLog( DEBUGING, "工事中ポート数: %d", port_info->work_port );
+
+	return 0;
+
+} /* getWorkingUnusedPort() */
+
+
+/****************************************************************************/
+/* Name : getWorkPort                                                       */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:  0: 正常                                                */
+/*                  -1: 異常                                                */
+/*                                                                          */
+/* Description : 工事中ポート数と工事中実装数の検索を行う                   */
+/*               工事中ポート数    : 工事中の未使用ポートの数の合計         */
+/*               工事中未使用ポート: DARが工事中、DASが空きのもの           */
+/*               工事中実装数      : DARが工事中の回線ポート数の合計        */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getWorkPort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	int		ret;
+
+
+	printLog( DEBUGING, "*** getWorkPort() ***" );
+
+	/*** 工事中実装数を求める ***/
+	ret = getWorkingUseablePort( branch_cd, build_cd, unit_cd, port_info );
+	if( ret ){
+		return -1;
+	}
+
+	/*** 工事中ポート数を求める ***/
+	ret = getWorkingUnusedPort( branch_cd, build_cd, unit_cd, port_info );
+	if( ret ){
+		return -1;
+	}
+	
+	return 0;
+} /* getWorkPort */
+
+
+/****************************************************************************/
+/* Name : getWaitPort                                                       */
+/*                                                                          */
+/* Parameters: char*             branch_cd:  IN: 受信データ                 */
+/*             char*             build_cd :  IN: 送信データ                 */
+/*             char*             unit_cd  :  IN: 送信データ                 */
+/*             struct PORT_INFO* port_info: OUT: 送信データ                 */
+/*                                                                          */
+/* Return    : int:  0: 正常                                                */
+/*                  -1: 異常                                                */
+/*                                                                          */
+/* Description : 廃止ポート数の検索を行う                                   */
+/*               廃止ポート数: DARが運用中、DASが廃止済みのもの             */
+/*                                                                          */
+/* Create : Jul.09.2001                                                     */
+/* Modify :                                                                 */
+/****************************************************************************/
+int getWaitPort( char* branch_cd, char* build_cd, char* unit_cd, 
+												struct PORT_INFO* port_info )
+{
+	/*** SQLで使う変数を宣言 ***/
+	EXEC SQL BEGIN DECLARE SECTION;
+		VARCHAR		sql_buff[SQL_BUFF];
+		int			mst=0;
+		short		ind;
+	EXEC SQL END DECLARE SECTION;
+
+
+	printLog( DEBUGING, "*** getWaitPort() ***" );
+
+	memset( sql_buff.arr, 0 ,sizeof(sql_buff.arr) );
+
+	if( strlen(unit_cd) > 0 ){
+		sprintf( (char*)sql_buff.arr, UN_USED_UNIT, branch_cd, build_cd, unit_cd, DAR_USEABLE, DAS_WAIT );
+	}
+	else{
+		sprintf( (char*)sql_buff.arr, UN_USED_NOUNIT, branch_cd, build_cd, DAR_USEABLE, DAS_WAIT );
+	}
+	
+	sql_buff.len = strlen( (char*)sql_buff.arr );
+
+	printLog( DEBUGING, "%s", sql_buff.arr );
+
+	EXEC SQL PREPARE SB FROM :sql_buff;
+	if( sqlca.sqlcode != 0 ){
+		/* 正常ではない場合 */
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL COMMIT WORK;
+		return -1;
+    }
+
+    EXEC SQL DECLARE CUR5 CURSOR FOR SB;
+
+    EXEC SQL OPEN CUR5;
+
+    EXEC SQL FETCH CUR5 INTO :mst indicator :ind;
+
+	if( sqlca.sqlcode != 0 ){
+		/*  正常ではない場合	*/
+		printLog( ERROR, "ERROR_MSG = %s", sqlca.sqlerrm.sqlerrmc );
+		printLog( ERROR, "ORA %d", sqlca.sqlcode );
+		EXEC SQL CLOSE CUR5;
+		EXEC SQL COMMIT WORK;
+        return -1;
+    }
+
+	/* 空きポート数の設定 */
+	port_info->wait_port = mst;
+	printLog( DEBUGING, "廃止ポート数: %d", port_info->wait_port );
+
+	EXEC SQL CLOSE CUR5;
+	EXEC SQL COMMIT WORK;
+
+	return 0;
+} /* getWaitPort */
+
+/* END OF FILE */

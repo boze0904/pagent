@@ -1,0 +1,34 @@
+PROC用ディレクトリです
+子プロセスのなかで実行されるＳＱＬを作成します
+
+MakeFile :
+	すべてのpcファイルをコンパイルします
+	pcファイルを追加した場合、追加してください
+	追加した場合、このREADMEに追加状況を書いてください
+	書かないと死刑
+
+pcファイル :
+	db_func.pc
+	Proc_BUILD_Insert.pc Proc_BUILD_Update.pc Proc_BUILD_Delete.pc
+	Proc_BRANCH_Insert.pc Proc_BRANCH_Update.pc Proc_BRANCH_Delete.pc
+	Proc_ISP_CONTACT_Insert.pc Proc_ISP_CONTACT_Update.pc Proc_ISP_CONTACT_Delete.pc
+	Proc_ISP_BRANCH_Insert.pc Proc_ISP_BRANCH_Update.pc Proc_ISP_BRANCH_Delete.pc
+	Proc_ISP_NTE_Insert.pc Proc_ISP_NTE_Update.pc Proc_ISP_NTE_Delete.pc
+	Proc_MEDO_CONTACT_Insert.pc Proc_MEDO_CONTACT_Update.pc Proc_MEDO_CONTACT_Delete.pc
+	Proc_MAKER_CONTACT_Insert.pc Proc_MAKER_CONTACT_Update.pc Proc_MAKER_CONTACT_Delete.pc
+	Proc_EQP_Insert.pc Proc_EQP_Update.pc Proc_EQP_Delete.pc
+	Proc_COMPONENT_Insert.pc Proc_COMPONENT_Delete.pc
+
+hファイル :
+	db_func.h proc_str.h sql_str.h
+
+tmpディレクトリ :
+	墓場・・・
+
+履歴 :
+	2001年1月23日
+
+	2001年2月5日
+	最終変更 たぶん・・・
+
+

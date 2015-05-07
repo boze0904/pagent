@@ -1,0 +1,90 @@
+/********************************************************/
+/*  ファイル名 :                Proc_EQP_Update.pc		*/
+/*  実行アプリケーション名 :    EQP_Update				*/
+/*														*/
+/*  作成日 :                    2001/1/16				*/
+/*	更新日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_EQP_Update(EQP *eqp) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_EQP proc_eqp;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_eqp, '\0', sizeof(proc_eqp));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_eqp.BranchCode, eqp->BranchCode);
+	strcpy(proc_eqp.HostName, eqp->HostName);
+	strcpy(proc_eqp.ProductName, eqp->ProductName);
+	strcpy(proc_eqp.MakerContactid, eqp->MakerContactid);
+	strcpy(proc_eqp.Componentid, eqp->Componentid);
+
+#ifdef DEBUG
+printf("proc_eqp.BranchCode=%s\n",proc_eqp.BranchCode);
+printf("proc_eqp.HostName=%s\n",proc_eqp.HostName);
+printf("proc_eqp.ProductName=%s\n",proc_eqp.ProductName);
+printf("proc_eqp.MakerContactid=%s\n",proc_eqp.MakerContactid);
+printf("proc_eqp.Componentid=%s\n",proc_eqp.Componentid);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	idだけ自動に（？）生成されるので				*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE t_EQP SET 
+					ProductName = :proc_eqp.ProductName,
+					MakerContactid = :proc_eqp.MakerContactid,
+					Componentid = :proc_eqp.Componentid,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE BranchCode = :proc_eqp.BranchCode AND HostName = :proc_eqp.HostName;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# EQP_Update 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

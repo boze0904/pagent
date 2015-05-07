@@ -1,0 +1,112 @@
+/********************************************************/
+/*  ファイル名 :                Proc_BUILD_Update.pc	*/
+/*  実行アプリケーション名 :    BUILD_Update			*/
+/*														*/
+/*  作成日 :                    2001/1/11				*/
+/*	変更日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_BUILD_Update(BUILD *build) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_BUILD proc_build;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_build, '\0', sizeof(proc_build));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_build.BuildNameKana, build->BuildNameKana);
+	strcpy(proc_build.BuildCode, build->BuildCode);
+	strcpy(proc_build.BuildName, build->BuildName);
+	strcpy(proc_build.BranchCode, build->BranchCode);
+	strcpy(proc_build.AcomodateArea, build->AcomodateArea);
+	strcpy(proc_build.BuildType, build->BuildType);
+	strcpy(proc_build.BuildAddress, build->BuildAddress);
+	strcpy(proc_build.Floor, build->Floor);
+	strcpy(proc_build.MeContactid, build->MeContactid);
+	strcpy(proc_build.PhoneNumber, build->PhoneNumber);
+	strcpy(proc_build.AdminArea, build->AdminArea);
+	strcpy(proc_build.PublicBuild, build->PublicBuild);
+
+#ifdef DEBUG
+printf("proc_build.BuildNameKana=%s\n",proc_build.BuildNameKana);
+printf("proc_build.BuildCode=%s\n",proc_build.BuildCode);
+printf("proc_build.BuildName=%s\n",proc_build.BuildName);
+printf("proc_build.BranchCode=%s\n",proc_build.BranchCode);
+printf("proc_build.AcomodateArea=%s\n",proc_build.AcomodateArea);
+printf("proc_build.BuildType=%s\n",proc_build.BuildType);
+printf("proc_build.BuildAddress=%s\n",proc_build.BuildAddress);
+printf("proc_build.Floor=%s\n",proc_build.Floor);
+printf("proc_build.MeContactid=%s\n",proc_build.MeContactid);
+printf("proc_build.PhoneNumber=%s\n",proc_build.PhoneNumber);
+printf("proc_build.AdminArea=%s\n",proc_build.AdminArea);
+printf("proc_build.PublicBuild=%s\n",proc_build.PublicBuild);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	Buildidだけ自動に（？）生成されるので			*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE m_BUILD SET 
+					BuildNameKana = :proc_build.BuildNameKana,
+					BuildName = :proc_build.BuildName,
+					BranchCode = :proc_build.BranchCode,
+					AcomodateArea = :proc_build.AcomodateArea,
+					BuildType = :proc_build.BuildType,
+					BuildAddress = :proc_build.BuildAddress,
+					Floor = :proc_build.Floor,
+					MeContactid = :proc_build.MeContactid,
+					PhoneNumber = :proc_build.PhoneNumber,
+					AdminArea = :proc_build.AdminArea,
+					PublicBuild = :proc_build.PublicBuild,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE BuildCode = :proc_build.BuildCode;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# BUILD_Update実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

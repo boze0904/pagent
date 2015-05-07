@@ -1,0 +1,84 @@
+/************************************************************/
+/*  ファイル名 :                proc_import_dar_insert.pc	*/
+/*	概要		:	無し									*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "output_log.h"
+#include "import_dar.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "proc_import_dar_insert.h";
+
+int proc_import_dar_insert(IMPORT_DAR *dar) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+		PROC_IMPORT_DAR proc_dar;
+		char			proc_port_no[5];
+		char			proc_das_status[2];
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	int i;
+	memset(&proc_dar, 0, sizeof(proc_dar));
+	memset(proc_port_no, 0, sizeof(proc_port_no));
+	memset(proc_das_status, 0, sizeof(proc_das_status));
+
+	/* コピー */
+	strcpy(proc_dar.dar_no, dar->dar_no);
+	strcpy(proc_dar.branch_c, dar->branch_c);
+	strcpy(proc_dar.build_c, dar->build_c);
+	strcpy(proc_dar.unit_c, dar->unit_c);
+	strcpy(proc_dar.circuit_no, dar->circuit_no);
+	strcpy(proc_dar.port_max, dar->port_max);
+	strcpy(proc_dar.dar_hope_day, dar->dar_hope_day);
+	strcpy(proc_dar.status_memo, dar->status_memo);
+	strcpy(proc_dar.das_use, dar->das_use);
+	strcpy(proc_dar.dar_status, dar->dar_status);
+
+	/* exec sql */
+	EXEC SQL INSERT INTO ISDN_TBL_DAR (
+					dar_no, branch_c, build_c, unit_c, circuit_no, port_max,
+					dar_hope_day, status_memo, das_use, dar_status)
+				VALUES ( :proc_dar.dar_no, :proc_dar.branch_c, :proc_dar.build_c,
+					:proc_dar.unit_c, :proc_dar.circuit_no, :proc_dar.port_max,
+					:proc_dar.dar_hope_day, :proc_dar.status_memo, :proc_dar.das_use,
+					:proc_dar.dar_status );
+
+	rtn = sqlca.sqlcode;
+
+	if (rtn != 0) {
+		printLog( DEBUGING, "%s : %d INSERT INTO ISDN_TBL_DAR...ORA %d", __FILE__, __LINE__, rtn);
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+	printLog( DEBUGING, "%s : %d INSERT INTO ISDN_TBL_DAR...OK", __FILE__, __LINE__);
+
+	strcpy(proc_das_status, proc_dar.das_use);
+	for(i=1; i<=atoi(proc_dar.port_max); i++){
+		sprintf(proc_port_no, "%d", i);
+		EXEC SQL INSERT INTO ISDN_TBL_DAS ( dar_no, port_no, das_status )
+					VALUES( :proc_dar.dar_no, :proc_port_no, :proc_das_status );
+
+		rtn = sqlca.sqlcode;
+		if(rtn != 0){
+			printLog( DEBUGING, "%s : %d INSERT INTO ISDN_TBL_DAS...ORA %d", __FILE__, __LINE__, rtn);
+			EXEC SQL ROLLBACK WORK;
+			return(rtn);
+		}
+	}
+	printLog( DEBUGING, "%s : %d INSERT INTO ISDN_TBL_DAS...OK", __FILE__, __LINE__);
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

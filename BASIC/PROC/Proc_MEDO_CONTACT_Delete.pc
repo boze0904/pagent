@@ -1,0 +1,74 @@
+/************************************************************/
+/*  ファイル名 :                Proc_MEDO_CONTACT_Delete.pc	*/
+/*  実行アプリケーション名 :    MEDO_CONTACT_Delete			*/
+/*															*/
+/*  作成日 :                    2001/1/16					*/
+/*	更新日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+
+int Proc_MEDO_CONTACT_Delete(char *MeContactid) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_MeContactid[41];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_MeContactid, '\0', sizeof(proc_MeContactid));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_MeContactid, MeContactid);
+
+#ifdef DEBUG
+printf("proc_MeContactid=%s\n",proc_MeContactid);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	MeContactidのみが渡されてくるので				*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM t_MEDO_CONTACT WHERE MeContactid = :proc_MeContactid;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# MEDO_CONTACT_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

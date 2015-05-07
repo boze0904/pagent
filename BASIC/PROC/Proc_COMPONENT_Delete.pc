@@ -1,0 +1,75 @@
+/************************************************************/
+/*  ファイル名 :                Proc_COMPONENT_Delete.pc	*/
+/*  実行アプリケーション名 :    COMPONENT_Delete			*/
+/*															*/
+/*  作成日 :                    2001/1/17					*/
+/*	更新日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_COMPONENT_Delete(char *Componentid) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_Componentid[25];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_Componentid, '\0', sizeof(proc_Componentid));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_Componentid, Componentid);
+
+#ifdef DEBUG
+printf("proc_Componentid=%s\n",proc_Componentid);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	ComponentidとComponentNoが渡されてくるので		*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM t_COMPONENT WHERE Componentid = :proc_Componentid;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# COMPONENT_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

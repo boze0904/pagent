@@ -1,0 +1,113 @@
+/****************************************************************/
+/*  ファイル名 :                Proc_MEDO_CONTACT_Update.pc		*/
+/*  実行アプリケーション名 :    MEDO_CONTACT_Update				*/
+/*																*/
+/*  作成日 :                    2001/1/16						*/
+/*	更新日 :					2001/2/2						*/
+/*  作成者 :                    長島							*/
+/*																*/
+/****************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_MEDO_CONTACT_Update(MEDO_CONTACT *medo_contact) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_MEDO_CONTACT proc_medo_contact;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_medo_contact, '\0', sizeof(proc_medo_contact));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_medo_contact.MeContactid, medo_contact->MeContactid);
+	strcpy(proc_medo_contact.MeMaintenanceArea, medo_contact->MeMaintenanceArea);
+	strcpy(proc_medo_contact.MeCenterName, medo_contact->MeCenterName);
+	strcpy(proc_medo_contact.MeBaseName, medo_contact->MeBaseName);
+	strcpy(proc_medo_contact.MeDivision, medo_contact->MeDivision);
+	strcpy(proc_medo_contact.MePersonDay, medo_contact->MePersonDay);
+	strcpy(proc_medo_contact.MeContactDay, medo_contact->MeContactDay);
+	strcpy(proc_medo_contact.NightServiceFlag, medo_contact->NightServiceFlag);
+	strcpy(proc_medo_contact.MeContactNight, medo_contact->MeContactNight);
+	strcpy(proc_medo_contact.FaxNumberDay, medo_contact->FaxNumberDay);
+	strcpy(proc_medo_contact.PortableTelephone, medo_contact->PortableTelephone);
+#if(0)  /*  前ばーじょん名残り 今は使わない */
+#endif
+
+#ifdef DEBUG
+printf("proc_medo_contact.MeContactid=%s\n",proc_medo_contact.MeContactid);
+printf("proc_medo_contact.MeMaintenanceArea=%s\n",proc_medo_contact.MeMaintenanceArea);
+printf("proc_medo_contact.MeCenterName=%s\n",proc_medo_contact.MeCenterName);
+printf("proc_medo_contact.MeBaseName=%s\n",proc_medo_contact.MeBaseName);
+printf("proc_medo_contact.MeDivision=%s\n",proc_medo_contact.MeDivision);
+printf("proc_medo_contact.MePersonDay=%s\n",proc_medo_contact.MePersonDay);
+printf("proc_medo_contact.MeContactDay=%s\n",proc_medo_contact.MeContactDay);
+printf("proc_medo_contact.NightServiceFlag=%s\n",proc_medo_contact.NightServiceFlag);
+printf("proc_medo_contact.MeContactNight=%s\n",proc_medo_contact.MeContactNight);
+printf("proc_medo_contact.FaxNumberDay=%s\n",proc_medo_contact.FaxNumberDay);
+printf("proc_medo_contact.PortableTelephone=%s\n",proc_medo_contact.PortableTelephone);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	MeDoidだけ自動に（？）生成されるので			*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE t_MEDO_CONTACT SET 
+					MeMaintenanceArea = :proc_medo_contact.MeMaintenanceArea,
+					MeCenterName = :proc_medo_contact.MeCenterName,
+					MeBaseName = :proc_medo_contact.MeBaseName,
+					MeDivision = :proc_medo_contact.MeDivision,
+					MePersonDay = :proc_medo_contact.MePersonDay,
+					MeContactDay = :proc_medo_contact.MeContactDay,
+					NightServiceFlag = :proc_medo_contact.NightServiceFlag,
+					MeContactNight = :proc_medo_contact.MeContactNight,
+					FaxNumberDay = :proc_medo_contact.FaxNumberDay,
+					PortableTelephone = :proc_medo_contact.PortableTelephone,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE MeContactid = :proc_medo_contact.MeContactid;
+#if(0)  /*  前ばーじょん名残り 今は使わない */
+#endif
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# MEDO_CONTACT_Update 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

@@ -1,0 +1,113 @@
+/************************************************************/
+/*  ファイル名 :                Proc_ISP_BRANCH_Update.pc	*/
+/*  実行アプリケーション名 :    ISP_BRANCH_Update			*/
+/*															*/
+/*  作成日 :                    2001/1/11					*/
+/*	変更日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_ISP_BRANCH_Update(ISP_BRANCH *isp_branch) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_ISP_BRANCH proc_isp_branch;
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_isp_branch, '\0', sizeof(proc_isp_branch));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_isp_branch.ISPCorpName, isp_branch->ISPCorpName);
+    strcpy(proc_isp_branch.ISPServiceName, isp_branch->ISPServiceName);
+    strcpy(proc_isp_branch.BranchCode, isp_branch->BranchCode);
+    strcpy(proc_isp_branch.ISPCode, isp_branch->ISPCode);
+    strcpy(proc_isp_branch.ACENumber, isp_branch->ACENumber);
+    strcpy(proc_isp_branch.ISPIFAddr, isp_branch->ISPIFAddr);
+    strcpy(proc_isp_branch.ISPRouterIP, isp_branch->ISPRouterIP);
+    strcpy(proc_isp_branch.NTEIFAddr, isp_branch->NTEIFAddr);
+    strcpy(proc_isp_branch.ISPNetAddress, isp_branch->ISPNetAddress);
+    strcpy(proc_isp_branch.ISPSubnetmask, isp_branch->ISPSubnetmask);
+    strcpy(proc_isp_branch.CircuitType, isp_branch->CircuitType);
+    strcpy(proc_isp_branch.CircuitSpeed, isp_branch->CircuitSpeed);
+
+#ifdef DEBUG
+printf("proc_isp_branch.ISPCorpName=%s\n",proc_isp_branch.ISPCorpName);
+printf("proc_isp_branch.ISPServiceName=%s\n",proc_isp_branch.ISPServiceName);
+printf("proc_isp_branch.BranchCode=%s\n",proc_isp_branch.BranchCode);
+printf("proc_isp_branch.ISPCode=%s\n",proc_isp_branch.ISPCode);
+printf("proc_isp_branch.ACENumber=%s\n",proc_isp_branch.ACENumber);
+printf("proc_isp_branch.ISPIFAddr=%s\n",proc_isp_branch.ISPIFAddr);
+printf("proc_isp_branch.ISPRouterIP=%s\n",proc_isp_branch.ISPRouterIP);
+printf("proc_isp_branch.NTEIFAddr=%s\n",proc_isp_branch.NTEIFAddr);
+printf("proc_isp_branch.ISPNetAddress=%s\n",proc_isp_branch.ISPNetAddress);
+printf("proc_isp_branch.ISPSubnetmask=%s\n",proc_isp_branch.ISPSubnetmask);
+printf("proc_isp_branch.CircuitType=%s\n",proc_isp_branch.CircuitType);
+printf("proc_isp_branch.CircuitSpeed=%s\n",proc_isp_branch.CircuitSpeed);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	ISPidだけ自動に（？）生成されるので				*/
+	/*	それは何も手を加えない							*/
+	/*	timestampにはsysdateをセットする				*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL UPDATE m_ISP_BRANCH SET 
+					ISPCorpName = :proc_isp_branch.ISPCorpName,
+					ISPServiceName = :proc_isp_branch.ISPServiceName,
+					BranchCode = :proc_isp_branch.BranchCode,
+					ISPCode = :proc_isp_branch.ISPCode,
+					ACENumber = :proc_isp_branch.ACENumber,
+					ISPIFAddr = :proc_isp_branch.ISPIFAddr,
+					ISPRouterIP = :proc_isp_branch.ISPRouterIP,
+					NTEIFAddr = :proc_isp_branch.NTEIFAddr,
+					ISPNetAddress = :proc_isp_branch.ISPNetAddress,
+					ISPSubnetmask = :proc_isp_branch.ISPSubnetmask,
+					CircuitType = :proc_isp_branch.CircuitType,
+					CircuitSpeed = :proc_isp_branch.CircuitSpeed,
+					timestamp = TO_CHAR(SYSDATE,'YYYYMMDD HH24MISS' )
+					WHERE BranchCode = :proc_isp_branch.BranchCode AND ISPCode = :proc_isp_branch.ISPCode;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# ISP_BRANCH_Update 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

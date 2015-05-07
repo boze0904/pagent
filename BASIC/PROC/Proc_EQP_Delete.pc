@@ -1,0 +1,79 @@
+/*******************************************************/
+/*  ファイル名 :                Proc_EQP_Delete.pc		*/
+/*  実行アプリケーション名 :    EQP_Delete				*/
+/*														*/
+/*  作成日 :                    2001/1/16				*/
+/*	更新日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/*******************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_EQP_Delete(char *BranchCode, char *HostName) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_BranchCode[9];
+		char proc_HostName[12];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_BranchCode, '\0', sizeof(proc_BranchCode));
+	memset(&proc_HostName, '\0', sizeof(proc_HostName));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_BranchCode, BranchCode);
+	strcpy(proc_HostName, HostName);
+
+#ifdef DEBUG
+printf("proc_BranchCode=%s\n",proc_BranchCode);
+printf("proc_HostName=%s\n",proc_HostName);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	BranchCodeとHostNameが渡されてくるので			*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM t_EQP WHERE BranchCode = :proc_BranchCode AND HostName = :proc_HostName;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# EQP_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

@@ -1,0 +1,132 @@
+/********************************************************/
+/*  ファイル名 :                Proc_BUILD_Insert.pc	*/
+/*  実行アプリケーション名 :    BUILD_Insert			*/
+/*														*/
+/*  作成日 :                    2001/1/10				*/
+/*	変更日 :					2001/2/2				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_BUILD_Insert(BUILD *build) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_BUILD proc_build;
+		char create_by[21];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_build, '\0', sizeof(proc_build));
+	memset(&create_by, '\0', sizeof(create_by));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_build.BuildNameKana, build->BuildNameKana);
+	strcpy(proc_build.BuildCode, build->BuildCode);
+	strcpy(proc_build.BuildName, build->BuildName);
+	strcpy(proc_build.BranchCode, build->BranchCode);
+	strcpy(proc_build.AcomodateArea, build->AcomodateArea);
+	strcpy(proc_build.BuildType, build->BuildType);
+	strcpy(proc_build.BuildAddress, build->BuildAddress);
+	strcpy(proc_build.Floor, build->Floor);
+	strcpy(proc_build.MeContactid, build->MeContactid);
+	strcpy(proc_build.PhoneNumber, build->PhoneNumber);
+	strcpy(proc_build.AdminArea, build->AdminArea);
+	strcpy(proc_build.PublicBuild, build->PublicBuild);
+	strcpy(create_by, CREATE_BY);
+
+#ifdef DEBUG
+printf("proc_build.BuildNameKana=%s\n",proc_build.BuildNameKana);
+printf("proc_build.BuildCode=%s\n",proc_build.BuildCode);
+printf("proc_build.BuildName=%s\n",proc_build.BuildName);
+printf("proc_build.BranchCode=%s\n",proc_build.BranchCode);
+printf("proc_build.AcomodateArea=%s\n",proc_build.AcomodateArea);
+printf("proc_build.BuildType=%s\n",proc_build.BuildType);
+printf("proc_build.BuildAddress=%s\n",proc_build.BuildAddress);
+printf("proc_build.Floor=%s\n",proc_build.Floor);
+printf("proc_build.MeContactid=%s\n",proc_build.MeContactid);
+printf("proc_build.PhoneNumber=%s\n",proc_build.PhoneNumber);
+printf("proc_build.AdminArea=%s\n",proc_build.AdminArea);
+printf("proc_build.PublicBuild=%s\n",proc_build.PublicBuild);
+printf("create_by=%s\n",create_by);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	Buildidだけ自動に（？）生成されるので			*/
+	/*	そのようにVALUESに「Buildid_Seq.NEXTVAL」		*/
+	/*	をセットする									*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL INSERT INTO m_BUILD (
+					Buildid,
+					BuildNameKana,
+					BuildCode,
+					BuildName,
+					BranchCode,
+					AcomodateArea,
+					BuildType,
+					BuildAddress,
+					Floor,
+					MeContactid,
+					PhoneNumber,
+					AdminArea,
+					PublicBuild,
+					swCreatedBy )
+				VALUES (
+					Buildid_Seq.NEXTVAL,
+					:proc_build.BuildNameKana,
+					:proc_build.BuildCode,
+					:proc_build.BuildName,
+					:proc_build.BranchCode,
+					:proc_build.AcomodateArea,
+					:proc_build.BuildType,
+					:proc_build.BuildAddress,
+					:proc_build.Floor,
+					:proc_build.MeContactid,
+					:proc_build.PhoneNumber,
+					:proc_build.AdminArea,
+					:proc_build.PublicBuild,
+					:create_by );
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# BUILD_Insert 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

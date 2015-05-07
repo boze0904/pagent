@@ -1,0 +1,96 @@
+/********************************************************/
+/*  ファイル名 :                Proc_BRANCH_Insert.pc	*/
+/*  実行アプリケーション名 :    BRANCH_Insert			*/
+/*														*/
+/*  作成日 :                    2001/1/11       	    */
+/*	変更日 :					2001/2/3				*/
+/*  作成者 :                    長島					*/
+/*														*/
+/********************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include "proc_str.h"
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_BRANCH_Insert(BRANCH *branch) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		PROC_BRANCH proc_branch;
+		char create_by[21];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_branch, '\0', sizeof(proc_branch));
+	memset(&create_by, '\0', sizeof(create_by));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_branch.BranchCode, branch->BranchCode);
+	strcpy(proc_branch.KenName, branch->KenName);
+	strcpy(proc_branch.BranchName, branch->BranchName);
+	strcpy(create_by, CREATE_BY);
+
+#ifdef DEBUG
+printf("proc_branch.BranchCode=%s\n",proc_branch.BranchCode);
+printf("proc_branch.KenName=%s\n",proc_branch.KenName);
+printf("proc_branch.BranchName=%s\n",proc_branch.BranchName);
+printf("create_by=%s\n",create_by);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	BRanchidだけ自動に（？）生成されるので			*/
+	/*	そのようにVALUESに「BRanchid_Seq.NEXTVAL」		*/
+	/*	をセットする									*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL INSERT INTO m_BRANCH (
+					BRanchid,
+					BranchCode,
+					KenName,
+					BranchName,
+					swCreatedBy )
+				VALUES (
+					BRanchid_Seq.NEXTVAL,
+					:proc_branch.BranchCode,
+					:proc_branch.KenName,
+					:proc_branch.BranchName,
+					:create_by );
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# BRANCH_Insert 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

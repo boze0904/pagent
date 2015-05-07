@@ -1,0 +1,82 @@
+/************************************************************/
+/*  ファイル名 :                Proc_ISP_NTE_Delete.pc		*/
+/*  実行アプリケーション名 :    ISP_NTE_Delete				*/
+/*															*/
+/*  作成日 :                    2001/1/30					*/
+/*	更新日 :					2001/2/2					*/
+/*  作成者 :                    長島						*/
+/*															*/
+/************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+EXEC SQL INCLUDE "sql_str.h";
+
+int Proc_ISP_NTE_Delete(char *BranchCode, char *ISPCode, char *NTENumber) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_BranchCode[9];
+		char proc_ISPCode[4];
+		char proc_NTENumber[4];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_BranchCode, '\0', sizeof(proc_BranchCode));
+	memset(&proc_ISPCode, '\0', sizeof(proc_ISPCode));
+	memset(&proc_NTENumber, '\0', sizeof(proc_NTENumber));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_BranchCode, BranchCode);
+	strcpy(proc_ISPCode, ISPCode);
+	strcpy(proc_NTENumber, NTENumber);
+#ifdef DEBUG
+printf("proc_BranchCode=%s\n",proc_BranchCode);
+printf("proc_ISPCode=%s\n",proc_ISPCode);
+printf("proc_NTENumber=%s\n",proc_NTENumber);
+fflush( stdout );
+#endif
+
+	/********************************************************/
+	/*														*/
+	/*	SQLの実行											*/
+	/*	BranchCodeとISPCodeとNTENumberが渡されてくるので	*/
+	/*	それをキーにしてDeleteを実行						*/
+	/*														*/
+	/********************************************************/
+	EXEC SQL DELETE FROM m_ISP_NTE WHERE BranchCode = :proc_BranchCode AND ISPCode = :proc_ISPCode AND NTENumber = :proc_NTENumber;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# ISP_NTE_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+

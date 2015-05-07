@@ -1,0 +1,74 @@
+/****************************************************************/
+/*  ファイル名 :                Proc_MAKER_CONTACT_Delete.pc	*/
+/*  実行アプリケーション名 :    MAKER_CONTACT_Delete			*/
+/*																*/
+/*  作成日 :                    2001/1/16						*/
+/*	更新日 :					2001/2/2						*/
+/*  作成者 :                    長島							*/
+/*																*/
+/****************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+EXEC SQL INCLUDE SQLCA;
+
+int Proc_MAKER_CONTACT_Delete(char *MakerContactid) {
+
+	EXEC SQL BEGIN DECLARE SECTION;
+
+		char proc_MakerContactid[51];
+
+	EXEC SQL END DECLARE SECTION;
+
+	/*	初期化っす	*/
+	int rtn = 0 ;
+	memset(&proc_MakerContactid, '\0', sizeof(proc_MakerContactid));
+
+	/****************************************/
+	/*										*/
+	/*	コピーしまっす これ重要				*/
+	/*										*/
+	/****************************************/
+	strcpy(proc_MakerContactid, MakerContactid);
+
+#ifdef DEBUG
+printf("proc_MakerContactid=%s\n",proc_MakerContactid);
+fflush( stdout );
+#endif
+
+	/****************************************************/
+	/*													*/
+	/*	SQLの実行										*/
+	/*	MakerContactidのみが渡されてくるので			*/
+	/*	それをキーにしてDeleteを実行					*/
+	/*													*/
+	/****************************************************/
+	EXEC SQL DELETE FROM t_MAKER_CONTACT WHERE MakerContactid = :proc_MakerContactid;
+
+	rtn = sqlca.sqlcode;
+
+#ifdef DEBUG
+printf("############# MAKER_CONTACT_Delete 実行完了：%d ###################\n",rtn);
+fflush( stdout );
+#endif
+
+	if (rtn != 0)
+	{
+		#ifdef DEBUG
+		printf("SQL_ERRORCODE=%d\nSQL_ERROR_MSG=%s\n",rtn,sqlca.sqlerrm.sqlerrmc);
+		fflush( stdout );
+		#endif
+
+		EXEC SQL ROLLBACK WORK;
+		return(rtn);
+	}
+
+	EXEC SQL COMMIT WORK;
+
+	return(rtn);
+
+}
+
+
+/*	END OF FILE	*/
+
